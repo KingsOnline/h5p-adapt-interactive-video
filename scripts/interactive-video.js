@@ -1,4 +1,4 @@
-H5P.InteractiveVideo = (function ($, EventDispatcher, DragNBar, Interaction) {
+H5P.AdaptInteractiveVideo = (function ($, EventDispatcher, DragNBar, Interaction) {
 
   /**
    * @typedef {Object} InteractiveVideoParameters
@@ -184,12 +184,21 @@ H5P.InteractiveVideo = (function ($, EventDispatcher, DragNBar, Interaction) {
           self.timeUpdate(self.video.getCurrentTime());
           self.controls.$currentTime.html(self.controls.$totalTime.html());
 
+
+          console.log('ended' + params.adaptID)
+          window.top.postMessage(('ended' + params.adaptID), '*');
+
           self.complete();
           break;
 
         case H5P.Video.PLAYING:
           if (firstPlay) {
             firstPlay = false;
+
+            // message Adapt started
+            console.log('started' + params.adaptID);
+
+             window.top.postMessage(('started' + params.adaptID), '*'); // messages Adapt
 
             // Qualities might not be available until after play.
             self.addQualityChooser();
