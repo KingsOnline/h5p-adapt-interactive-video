@@ -1,7 +1,7 @@
 /** @namespace H5PUpgrades */
 var H5PUpgrades = H5PUpgrades || {};
 
-H5PUpgrades['H5P.InteractiveVideo'] = (function ($) {
+H5PUpgrades['H5P.AdaptInteractiveVideo'] = (function ($) {
   return {
     1: {
       /**

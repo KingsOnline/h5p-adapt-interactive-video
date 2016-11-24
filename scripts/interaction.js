@@ -37,7 +37,7 @@ H5P.InteractiveVideoInteraction = (function ($, EventDispatcher) {
    * @class H5P.InteractiveVideoInteraction
    * @extends H5P.EventDispatcher
    * @param {Parameters} parameters describes action behavior
-   * @param {H5P.InteractiveVideo} player instance
+   * @param {H5P.AdaptInteractiveVideo} player instance
    * @param {Object} previousState
    */
   function Interaction(parameters, player, previousState) {
