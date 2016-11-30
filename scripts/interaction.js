@@ -698,7 +698,6 @@ H5P.InteractiveVideoInteraction = (function ($, EventDispatcher) {
           continueWithVideo(adaptivity.seekTo);
         }
       ).showButton('iv-adaptivity-' + adaptivityId, 1)
-        .hideButton('iv-adaptivity-' + (fullScore ? 'wrong' : 'correct'), 1)
         .hideButton('check-answer', 1)
         .hideButton('show-solution', 1)
         .hideButton('try-again', 1);
@@ -1274,7 +1273,7 @@ H5P.InteractiveVideoInteraction = (function ($, EventDispatcher) {
      * @returns {object}
      */
     self.getClipboardData = function () {
-      return H5P.DragNBar.clipboardify(H5PEditor.InteractiveVideo.clipboardKey, parameters, 'action');
+      return H5P.DragNBar.clipboardify(H5PEditor.AdaptInteractiveVideo.clipboardKey, parameters, 'action');
     };
 
     /**
