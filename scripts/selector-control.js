@@ -89,8 +89,8 @@ AdaptInteractiveVideo.SelectorControl = function (name, options, selectedOption,
 };
 
 // Inheritance
-InteractiveVideo.SelectorControl.prototype = Object.create(EventDispatcher.prototype);
-InteractiveVideo.SelectorControl.prototype.constructor = InteractiveVideo.SelectorControl;
+AdaptInteractiveVideo.SelectorControl.prototype = Object.create(EventDispatcher.prototype);
+AdaptInteractiveVideo.SelectorControl.prototype.constructor = AdaptInteractiveVideo.SelectorControl;
 
 // Button types
 var ICON = 0;
