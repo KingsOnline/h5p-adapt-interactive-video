@@ -20,6 +20,7 @@ H5P.AdaptInteractiveVideo = (function ($, EventDispatcher, DragNBar, Interaction
   function InteractiveVideo(params, id, contentData) {
     var self = this;
     var startAt;
+    var loopVideo;
 
     // Inheritance
     H5P.EventDispatcher.call(self);
@@ -66,6 +67,7 @@ H5P.AdaptInteractiveVideo = (function ($, EventDispatcher, DragNBar, Interaction
       self.showRewind10 = (params.override.showRewind10 !== undefined ? params.override.showRewind10 : false);
       self.showBookmarksmenuOnLoad = (params.override.showBookmarksmenuOnLoad !== undefined ? params.override.showBookmarksmenuOnLoad : false);
       self.preventSkipping = params.override.preventSkipping || false;
+      self.deactivateSound = params.override.deactivateSound || false;
     }
     // Translated UI text defaults
     self.l10n = $.extend({
@@ -73,8 +75,10 @@ H5P.AdaptInteractiveVideo = (function ($, EventDispatcher, DragNBar, Interaction
       play: 'Play',
       pause: 'Pause',
       mute: 'Mute',
-      quality: 'Video quality',
       unmute: 'Unmute',
+      quality: 'Video quality',
+      captions: 'Captions',
+      close: 'Close',
       fullscreen: 'Fullscreen',
       exitFullscreen: 'Exit fullscreen',
       summary: 'Summary',
@@ -85,6 +89,7 @@ H5P.AdaptInteractiveVideo = (function ($, EventDispatcher, DragNBar, Interaction
       playbackRate: 'Playback rate',
       rewind10: 'Rewind 10 seconds',
       navDisabled: 'Navigation is disabled',
+      sndDisabled: 'Sound is disabled',
       requiresCompletionWarning: 'You need to answer all the questions correctly before continuing.',
       back: 'Back'
     }, params.l10n);
@@ -119,9 +124,12 @@ H5P.AdaptInteractiveVideo = (function ($, EventDispatcher, DragNBar, Interaction
       startAt = params.override.startVideoAt;
     }
 
+    // determine if video should be looped
+    loopVideo = params.override && !!params.override.loop;
+
     // Start up the video player
     self.video = H5P.newRunnable({
-      library: 'H5P.Video 1.2',
+      library: 'H5P.Video 1.3',
       params: {
         sources: self.options.video.files,
         visuals: {
@@ -129,7 +137,8 @@ H5P.AdaptInteractiveVideo = (function ($, EventDispatcher, DragNBar, Interaction
           controls: self.justVideo,
           fit: false
         },
-        startAt: startAt
+        startAt: startAt,
+        a11y: self.options.video.textTracks
       }
     }, self.contentId, undefined, undefined, {parent: self});
 
@@ -189,6 +198,14 @@ H5P.AdaptInteractiveVideo = (function ($, EventDispatcher, DragNBar, Interaction
           window.top.postMessage(('ended' + params.adaptID), '*');
 
           self.complete();
+
+          if (loopVideo) {
+            self.video.play();
+            // we must check the parameter because the video might have started at previousState.progress
+            var loopTime = (params.override && !!params.override.startVideoAt) ? params.override.startVideoAt : 0;
+            self.video.seek(loopTime);
+          }
+
           break;
 
         case H5P.Video.PLAYING:
@@ -282,6 +299,11 @@ H5P.AdaptInteractiveVideo = (function ($, EventDispatcher, DragNBar, Interaction
       }
     });
 
+    // Handle video captions loaded
+    self.video.on('captions', function (event) {
+      self.setCaptionTracks(event.data);
+    });
+
     // Initialize interactions
     self.interactions = [];
     if (self.options.assets.interactions) {
@@ -294,6 +316,53 @@ H5P.AdaptInteractiveVideo = (function ($, EventDispatcher, DragNBar, Interaction
   // Inheritance
   InteractiveVideo.prototype = Object.create(H5P.EventDispatcher.prototype);
   InteractiveVideo.prototype.constructor = InteractiveVideo;
+
+  /**
+   * Set caption tracks for current interactive video
+   *
+   * @param {H5P.Video.LabelValue[]} tracks
+   */
+  InteractiveVideo.prototype.setCaptionTracks = function (tracks) {
+    var self = this;
+
+    // Add option to turn off captions
+    tracks.unshift(new H5P.Video.LabelValue('Off', 'off'));
+
+    if (self.captionsTrackSelector) {
+      // Captions track selector already exists, simply update with new options
+      self.captionsTrackSelector.updateOptions(tracks)
+      return;
+    }
+
+    // Determine current captions track
+    var currentTrack = self.video.getCaptionsTrack();
+    if (!currentTrack) {
+      // Set default off when no track is selected
+      currentTrack = tracks[0];
+    }
+
+    // Create new track selector
+    self.captionsTrackSelector = new InteractiveVideo.SelectorControl('captions', tracks, currentTrack, self.l10n);
+    self.captionsTrackSelector.on('select', function (event) {
+      self.video.setCaptionsTrack(event.data.value === 'off' ? null : event.data);
+    });
+    self.captionsTrackSelector.on('close', function (event) {
+      if (self.controls.$more.hasClass('h5p-active')) {
+        self.controls.$more.click();
+      }
+    });
+    self.captionsTrackSelector.on('open', function (event) {
+      self.controls.$overlayButtons.addClass('h5p-hide');
+    });
+
+    // Insert popup and button
+    $(self.captionsTrackSelector.popup).css(self.controlsCss).insertAfter(self.controls.$qualityChooser);
+    $(self.captionsTrackSelector.control).insertAfter(self.controls.$qualityButton);
+    $(self.captionsTrackSelector.overlayControl).insertAfter(self.controls.$qualityButtonMinimal);
+    self.controls.$overlayButtons = self.controls.$overlayButtons.add(self.captionsTrackSelector.overlayControl);
+
+    self.resizeControls();
+  };
 
   /**
    * Returns the current state of the interactions
@@ -625,7 +694,7 @@ H5P.AdaptInteractiveVideo = (function ($, EventDispatcher, DragNBar, Interaction
       var isYouTube = (self.video.pressToPlay !== undefined);
 
       // Consider pausing the playback
-      delayWork(isYouTube ? 100 : null, function () {
+      delayWork(isYouTube ? 100 : null, function () {
         var isPlaying = self.currentState === H5P.Video.PLAYING ||
             self.currentState === H5P.Video.BUFFERING;
         if (isPlaying && interaction.pause()) {
@@ -644,8 +713,14 @@ H5P.AdaptInteractiveVideo = (function ($, EventDispatcher, DragNBar, Interaction
       // update state
       if ($.inArray(event.getVerb(), ['completed', 'answered']) !== -1) {
         event.setVerb('answered');
-        if (interaction.isMainSummary()) {
-          self.complete();
+        // IV is complete if:
+        // - The event is sent from the "main" summary
+        // - The event sent is not an child of a sub content (grandchild)
+        if (interaction.isMainSummary() && event.isFromChild()) {
+          // Send completed after summary's answered
+          setTimeout(function () {
+            self.complete();
+          }, 0);
         }
       }
       if (event.data.statement.context.extensions === undefined) {
@@ -997,7 +1072,7 @@ H5P.AdaptInteractiveVideo = (function ($, EventDispatcher, DragNBar, Interaction
     self.controls.$currentTime = $time.find('.h5p-current');
 
     // Add fullscreen button
-    if (!self.editor && H5P.canHasFullScreen !== false) {
+    if (!self.editor && H5P.fullscreenSupported !== false) {
       self.controls.$fullscreen = self.createButton('fullscreen', 'h5p-control', $right, function () {
         self.toggleFullScreen();
       });
@@ -1030,15 +1105,24 @@ H5P.AdaptInteractiveVideo = (function ($, EventDispatcher, DragNBar, Interaction
     // Add volume button control (toggle mute)
     if (!isAndroid() && !isIpad()) {
       self.controls.$volume = self.createButton('mute', 'h5p-control', $right, function () {
-        if (self.controls.$volume.hasClass('h5p-muted')) {
-          self.controls.$volume.removeClass('h5p-muted').attr('title', self.l10n.mute);
-          self.video.unMute();
-        }
-        else {
-          self.controls.$volume.addClass('h5p-muted').attr('title', self.l10n.unmute);
-          self.video.mute();
+        if (!self.deactivateSound) {
+          if (self.controls.$volume.hasClass('h5p-muted')) {
+            self.controls.$volume.removeClass('h5p-muted').attr('title', self.l10n.mute);
+            self.video.unMute();
+          }
+          else {
+            self.controls.$volume.addClass('h5p-muted').attr('title', self.l10n.unmute);
+            self.video.mute();
+          }
         }
       });
+      if (self.deactivateSound) {
+        self.controls.$volume.addClass('h5p-muted h5p-disabled').attr('title', self.l10n.sndDisabled);
+      }
+    }
+
+    if (self.deactivateSound) {
+      self.video.mute();
     }
 
     // Add popup for selecting playback rate
@@ -1066,12 +1150,12 @@ H5P.AdaptInteractiveVideo = (function ($, EventDispatcher, DragNBar, Interaction
     });
 
     // Add buttons to wrapper
-    var $buttons = H5P.jQuery([]);
+    self.controls.$overlayButtons = H5P.jQuery([]);
 
     // Bookmarks
     if (bookmarksEnabled) {
-      $buttons = $buttons.add(self.createButton('bookmarks', 'h5p-minimal-button', $minimalWrap, function () {
-        $buttons.addClass('h5p-hide');
+      self.controls.$overlayButtons = self.controls.$overlayButtons.add(self.createButton('bookmarks', 'h5p-minimal-button', $minimalWrap, function () {
+        self.controls.$overlayButtons.addClass('h5p-hide');
         self.toggleBookmarksChooser(true);
       }, true));
     }
@@ -1079,20 +1163,20 @@ H5P.AdaptInteractiveVideo = (function ($, EventDispatcher, DragNBar, Interaction
     // Quality
     self.controls.$qualityButtonMinimal = self.createButton('quality', 'h5p-minimal-button h5p-disabled', $minimalWrap, function () {
       if (!self.controls.$qualityButton.hasClass('h5p-disabled')) {
-        $buttons.addClass('h5p-hide');
+        self.controls.$overlayButtons.addClass('h5p-hide');
         self.controls.$qualityButton.click();
       }
     }, true);
-    $buttons = $buttons.add(self.controls.$qualityButtonMinimal);
+    self.controls.$overlayButtons = self.controls.$overlayButtons.add(self.controls.$qualityButtonMinimal);
 
     // Playback rate
     self.controls.$playbackRateButtonMinimal = self.createButton('playbackRate', 'h5p-minimal-button h5p-disabled', $minimalWrap, function () {
       if (!self.controls.$playbackRateButton.hasClass('h5p-disabled')) {
-        $buttons.addClass('h5p-hide');
+        self.controls.$overlayButtons.addClass('h5p-hide');
         self.controls.$playbackRateButton.click();
       }
     }, true);
-    $buttons = $buttons.add(self.controls.$playbackRateButtonMinimal);
+    self.controls.$overlayButtons = self.controls.$overlayButtons.add(self.controls.$playbackRateButtonMinimal);
 
     // Add control for displaying overlay with buttons
     self.controls.$more = self.createButton('more', 'h5p-control', $right, function () {
@@ -1108,7 +1192,7 @@ H5P.AdaptInteractiveVideo = (function ($, EventDispatcher, DragNBar, Interaction
           self.controls.$playbackRateButton.click();
         }
         setTimeout(function () {
-          $buttons.removeClass('h5p-hide');
+          self.controls.$overlayButtons.removeClass('h5p-hide');
         }, 150);
       }
       else {
@@ -1187,6 +1271,9 @@ H5P.AdaptInteractiveVideo = (function ($, EventDispatcher, DragNBar, Interaction
 
         // Make sure splash screen is removed.
         self.removeSplash();
+
+        // Make overlay visible to catch mouseup/move events.
+        self.$overlay.addClass('h5p-visible');
       },
       slide: function (e, ui) {
         // Update elapsed time
@@ -1243,6 +1330,9 @@ H5P.AdaptInteractiveVideo = (function ($, EventDispatcher, DragNBar, Interaction
         else {
           self.timeUpdate(ui.value);
         }
+
+        // Done catching mouse events
+        self.$overlay.removeClass('h5p-visible');
       }
     });
 
@@ -1823,12 +1913,12 @@ H5P.AdaptInteractiveVideo = (function ($, EventDispatcher, DragNBar, Interaction
       return;
     }
 
-    if (!this.isCompleted) {
+    if (!this.completedSent) {
       // Post user score. Max score is based on how many of the questions the user
       // actually answered
       this.triggerXAPIScored(this.getUsersScore(), this.getUsersMaxScore(), 'completed');
     }
-    this.isCompleted = true;
+    this.completedSent = true;
   };
 
   /**
@@ -2151,13 +2241,73 @@ H5P.AdaptInteractiveVideo = (function ($, EventDispatcher, DragNBar, Interaction
    * @param {number} time null to carry out straight away
    * @param {function} job what to do
    */
-  var delayWork = function (time, job) {
+  var delayWork = function (time, job) {
     if (time === null) {
       job();
     }
     else {
       setTimeout(job, time);
     }
+  };
+
+  /**
+   * Get xAPI data.
+   * Contract used by report rendering engine.
+   *
+   * @see contract at {@link https://h5p.org/documentation/developers/contracts#guides-header-6}
+   */
+  InteractiveVideo.prototype.getXAPIData = function(){
+    var self = this;
+    var xAPIEvent = this.createXAPIEventTemplate('answered');
+    addQuestionToXAPI(xAPIEvent);
+    xAPIEvent.setScoredResult(self.getScore(),
+      self.getMaxScore(),
+      self,
+      true,
+      self.getScore() === self.getMaxScore()
+    );
+
+    var childrenData = getXAPIDataFromChildren(self.interactions);
+    return {
+      statement: xAPIEvent.data.statement,
+      children: childrenData
+    };
+  };
+
+  /**
+   * Add the question itself to the definition part of an xAPIEvent
+   */
+  var addQuestionToXAPI = function(xAPIEvent) {
+    var definition = xAPIEvent.getVerifiedStatementValue(['object', 'definition']);
+    H5P.jQuery.extend(definition, getxAPIDefinition());
+  };
+
+  /**
+   * Generate xAPI object definition used in xAPI statements.
+   * @return {Object}
+   */
+  var getxAPIDefinition = function () {
+    var definition = {};
+
+    definition.interactionType = 'compound';
+    definition.type = 'http://adlnet.gov/expapi/activities/cmi.interaction';
+    definition.description = {
+      'en-US': ''
+    };
+
+    return definition;
+  };
+
+  /**
+   * Get xAPI data from instances within a content type
+   *
+   * @param {Object} H5P instances
+   * @returns {array}
+   */
+  var getXAPIDataFromChildren = function(children) {
+    return children.map(function(child) {
+       return child.getXAPIData();
+    });
   };
 
   return InteractiveVideo;
