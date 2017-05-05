@@ -1,4 +1,4 @@
-(function (InteractiveVideo, EventDispatcher) {
+(function (AdaptInteractiveVideo, EventDispatcher) {
 
 /**
  * Makes it easy to create popup controls for videos
@@ -10,7 +10,7 @@
  * @param {H5P.Video.LabelValue} selectedOption Default selected option
  * @param {l10n} l10n Translations
  */
-InteractiveVideo.SelectorControl = function (name, options, selectedOption, l10n) {
+AdaptInteractiveVideo.SelectorControl = function (name, options, selectedOption, l10n) {
   /** @alias H5P.InteractiveVideo.SelectorControl# */
   var self = this;
 
@@ -144,4 +144,4 @@ var button = function (className, type, label, handler, tag) {
   return button;
 };
 
-})(H5P.InteractiveVideo, H5P.EventDispatcher);
+})(H5P.AdaptInteractiveVideo, H5P.EventDispatcher);
