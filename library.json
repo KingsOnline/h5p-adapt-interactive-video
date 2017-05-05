@@ -4,10 +4,10 @@
   "license": "MIT",
   "contentType": "Media",
   "majorVersion": 1,
-  "minorVersion": 15,
-  "patchVersion": 2,
+  "minorVersion": 16,
+  "patchVersion": 0,
   "machineName": "H5P.AdaptInteractiveVideo",
-  "author": "Joubel AS",
+  "author": "Joubel",
   "embedTypes": [
     "iframe"
   ],
@@ -15,44 +15,51 @@
   "fullscreen": 1,
   "coreApi": {
     "majorVersion": 1,
-    "minorVersion": 12
+    "minorVersion": 13
   },
   "preloadedJs": [{
-    "path": "scripts/interaction.js"
-  }, {
-    "path": "scripts/interactive-video.js"
-  }],
+      "path": "scripts/interaction.js"
+    },
+    {
+      "path": "scripts/interactive-video.js"
+    },
+    {
+      "path": "scripts/selector-control.js"
+    }
+  ],
   "preloadedCss": [{
     "path": "styles/interactive-video.css"
   }],
   "preloadedDependencies": [{
-    "machineName": "FontAwesome",
-    "majorVersion": 4,
-    "minorVersion": 5
-  }, {
-    "machineName": "jQuery.ui",
-    "majorVersion": 1,
-    "minorVersion": 10
-  }, {
-    "machineName": "H5P.Video",
-    "majorVersion": 1,
-    "minorVersion": 3
-  }, {
-    "machineName": "H5P.DragNBar",
-    "majorVersion": 1,
-    "minorVersion": 3
-  }, {
-    "machineName": "H5P.FontIcons",
-    "majorVersion": 1,
-    "minorVersion": 0
-  }],
+      "machineName": "FontAwesome",
+      "majorVersion": 4,
+      "minorVersion": 5
+    },
+    {
+      "machineName": "jQuery.ui",
+      "majorVersion": 1,
+      "minorVersion": 10
+    },
+    {
+      "machineName": "H5P.Video",
+      "majorVersion": 1,
+      "minorVersion": 3
+    },
+    {
+      "machineName": "H5P.DragNBar",
+      "majorVersion": 1,
+      "minorVersion": 4
+    }
+  ],
   "editorDependencies": [{
-    "machineName": "H5PEditor.Wizard",
-    "majorVersion": 1,
-    "minorVersion": 0
-  }, {
-    "machineName": "H5PEditor.AdaptInteractiveVideo",
-    "majorVersion": 1,
-    "minorVersion": 13
-  }]
+      "machineName": "H5PEditor.Wizard",
+      "majorVersion": 1,
+      "minorVersion": 2
+    },
+    {
+      "machineName": "H5PEditor.InteractiveVideo",
+      "majorVersion": 1,
+      "minorVersion": 16
+    }
+  ]
 }

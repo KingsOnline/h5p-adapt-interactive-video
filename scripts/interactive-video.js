@@ -196,7 +196,6 @@ H5P.AdaptInteractiveVideo = (function ($, EventDispatcher, DragNBar, Interaction
 
           console.log('ended' + params.adaptID)
           window.top.postMessage(('ended' + params.adaptID), '*');
-
           self.complete();
 
           if (loopVideo) {
@@ -213,10 +212,7 @@ H5P.AdaptInteractiveVideo = (function ($, EventDispatcher, DragNBar, Interaction
             firstPlay = false;
 
             // message Adapt started
-            console.log('started' + params.adaptID);
-
              window.top.postMessage(('started' + params.adaptID), '*'); // messages Adapt
-
             // Qualities might not be available until after play.
             self.addQualityChooser();
 
